@@ -1,0 +1,8 @@
+package it.unive.lisa.tutorial;
+
+import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalTypeDomain;
+
+public class SetOfIntegerValues implements BaseNonRelationalTypeDomain<BaseNonRelationalTypeDomain<SetOfIntegerValues>{
+	
+
+}

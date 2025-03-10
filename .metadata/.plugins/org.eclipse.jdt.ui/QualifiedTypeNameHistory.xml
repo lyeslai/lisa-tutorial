@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<qualifiedTypeNameHistroy/>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalTypeDomain"/>
+    <fullyQualifiedTypeName name="it.unive.lisa.tutorial.SetOfIntegerValues"/>
+    <fullyQualifiedTypeName name="java.util.HashSet"/>
+</qualifiedTypeNameHistroy>

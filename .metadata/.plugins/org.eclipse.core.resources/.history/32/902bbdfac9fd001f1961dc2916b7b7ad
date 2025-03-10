@@ -1,0 +1,39 @@
+package it.unive.lisa.tutorial;
+
+import it.unive.lisa.analysis.SemanticException;
+import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
+import it.unive.lisa.util.representation.StructuredRepresentation;
+
+public class SetOfIntegerValues implements BaseNonRelationalValueDomain<SetOfIntegerValues>{
+
+	@Override
+	public SetOfIntegerValues lubAux(SetOfIntegerValues other) throws SemanticException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean lessOrEqualAux(SetOfIntegerValues other) throws SemanticException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public SetOfIntegerValues top() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SetOfIntegerValues bottom() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public StructuredRepresentation representation() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

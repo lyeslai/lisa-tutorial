@@ -1,0 +1,53 @@
+package it.unive.lisa.tutorial;
+
+import java.util.Set;
+
+import it.unive.lisa.analysis.SemanticException;
+import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalTypeDomain;
+import it.unive.lisa.type.Type;
+import it.unive.lisa.util.representation.StructuredRepresentation;
+
+public class SetOfIntegerValues implements BaseNonRelationalTypeDomain<SetOfIntegerValues>{
+	Set<Integer> values;
+	
+	private SetOfIntegerValues(Set<Integer> values) {
+		this.values = values;
+	}
+	
+	@Override
+	public SetOfIntegerValues lubAux(SetOfIntegerValues other) throws SemanticException {
+		return null;
+	}
+
+	@Override
+	public boolean lessOrEqualAux(SetOfIntegerValues other) throws SemanticException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public SetOfIntegerValues top() {
+		
+		return null;
+	}
+
+	@Override
+	public SetOfIntegerValues bottom() {
+		
+		return null;
+	}
+
+	@Override
+	public StructuredRepresentation representation() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Set<Type> getRuntimeTypes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+
+}

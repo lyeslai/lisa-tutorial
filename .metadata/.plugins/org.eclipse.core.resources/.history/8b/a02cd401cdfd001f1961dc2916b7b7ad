@@ -1,0 +1,7 @@
+package it.unive.lisa.tutorial;
+
+import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
+
+public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain<IntervalsWithOverflowDomain> {
+
+}

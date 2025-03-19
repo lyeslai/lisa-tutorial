@@ -15,6 +15,7 @@ public class IntervalsWithOverflowDomainTest {
 
     @Test
     public void testIntervalsWithOverflow() throws ParsingException, AnalysisException {
+<<<<<<< HEAD
         Program program = IMPFrontend.processFile("inputs/intervalsoverflows.imp");
         LiSAConfiguration conf = new DefaultConfiguration();
         conf.workdir = "outputs/intervalsWithOverflow"; // Ajusté pour cohérence
@@ -24,6 +25,22 @@ public class IntervalsWithOverflowDomainTest {
                 new ValueEnvironment(new IntervalsWithOverflowDomain()),
                 DefaultConfiguration.defaultTypeDomain()
         );
+=======
+        // Charger le fichier .imp
+        Program program = IMPFrontend.processFile("inputs/intervals.imp");
+        
+        // Configurer LiSA
+        LiSAConfiguration conf = new DefaultConfiguration();
+        conf.workdir = "outputs/intervals"; // Dossier de sortie
+        conf.analysisGraphs = GraphType.HTML; // Générer des graphes HTML
+        conf.abstractState = DefaultConfiguration.simpleState(
+            DefaultConfiguration.defaultHeapDomain(),
+            new ValueEnvironment(new IntervalsWithOverflowDomain()), // Ton domaine
+            DefaultConfiguration.defaultTypeDomain()
+        );
+        
+        // Lancer l'analyse
+>>>>>>> 8755d952769689af398cc4586eb20b30190c81ea
         LiSA lisa = new LiSA(conf);
         lisa.run(new Program[]{program});
     }

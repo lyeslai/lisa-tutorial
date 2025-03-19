@@ -1,0 +1,30 @@
+class intervals {
+    loop() {
+        def x = 2147483640;
+        def step = 10;
+        while (x < 2147483647) {
+            x = x + step;
+        }
+        return x;
+    }
+
+    basic() {
+        def a = 1000000;
+        def b = 2000;
+        def sum = a + b;
+        def prod = a * b;
+        def sub = a - b;
+        def div = a / b;
+        return prod;
+    }
+
+    branches(a, b) {
+        def result = 0;
+        if (a > b) {
+            result = a * 10;
+        } else {
+            result = b - a;
+        }
+        return result;
+    }
+}

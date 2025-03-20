@@ -1,4 +1,5 @@
 class intervals {
+    // Cas existants
     loop() {
         def x = 2147483640;
         def step = 10;
@@ -15,7 +16,6 @@ class intervals {
         def prod = a * b;
         def sub = a - b;
         def div = a / b;
-        return prod;
     }
 
     branches(a, b) {
@@ -25,6 +25,67 @@ class intervals {
         } else {
             result = b - a;
         }
+        return result;
+    }
+
+    // Tests pour add
+
+    addOverflowPositive() {
+        def a = 2147483647; // MAX
+        def b = 10;
+        def result = a + b;
+        return result;
+    }
+
+    addOverflowNegative() {
+        def a = -2147483646; // MIN
+        def b = -10;
+        def result = a + b;
+        return result;
+    }
+
+    // Tests pour sub
+    subOverflowPositive() {
+        def a = -2147483646; 
+        def b = 10;
+        def result = a - b;
+        return result;
+    }
+
+    subOverflowNegative() {
+        def a = -10;
+        def b = 2147483647; // MAX
+        def result = a - b;
+        return result;
+    }
+
+
+    mulOverflowPositive() {
+        def a = 2147483647; 
+        def b = 2;
+        def result = a * b;
+        return result;
+    }
+
+    mulOverflowNegative() {
+        def a = -2147483646; 
+        def b = 10;
+        def result = a * b;
+        return result;
+    }
+    
+
+    divByZero() {
+        def a = 1000;
+        def b = 0;
+        def result = a / b;
+        return result;
+    }
+
+    divOverflowEdge() {
+        def a = -2147483646; 
+        def b = -10;
+        def result = a / b;
         return result;
     }
 }

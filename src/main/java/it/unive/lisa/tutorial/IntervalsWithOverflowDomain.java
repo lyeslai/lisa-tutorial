@@ -25,6 +25,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
 
     private static final int MIN = Integer.MIN_VALUE;
     private static final int MAX = Integer.MAX_VALUE;
+    private static final long RANGE_32BIT = 1L << 32;
 
     private final int low;
     private final int high;
@@ -211,6 +212,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         return new StringRepresentation("[" + low + ", " + high + "]");
     }
 
+
     public IntervalsWithOverflowDomain add(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
         if (left.isBottom() || right.isBottom()) {
             System.out.println("add: returning bottom");
@@ -218,11 +220,11 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         }
         long newLow = (long) left.low + (long) right.low;
         long newHigh = (long) left.high + (long) right.high;
-        System.out.println("add: newLow = " + newLow + ", newHigh = " + newHigh);
-        if (newLow > MAX || newLow < MIN || newHigh > MAX || newHigh < MIN) {
-            System.out.println("add: overflow detected, returning top");
-            return top();
+        if (newLow >= MIN && newLow <= MAX && newHigh >= MIN && newHigh <= MAX) {
+            return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
         }
+        newLow = wrapAround32Bit(newLow);
+        newHigh = wrapAround32Bit(newHigh);
         return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
     }
 
@@ -234,10 +236,11 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         long newLow = (long) left.low - (long) right.high;
         long newHigh = (long) left.high - (long) right.low;
         System.out.println("sub: newLow = " + newLow + ", newHigh = " + newHigh);
-        if (newLow > MAX || newLow < MIN || newHigh > MAX || newHigh < MIN) {
-            System.out.println("sub: overflow detected, returning top");
-            return top();
+        if (newLow >= MIN && newLow <= MAX && newHigh >= MIN && newHigh <= MAX) {
+            return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
         }
+        newLow = wrapAround32Bit(newLow);
+        newHigh = wrapAround32Bit(newHigh);
         return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
     }
 
@@ -253,16 +256,31 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
                 (long) left.high * right.high
         };
         long min = results[0], max = results[0];
+        boolean overflow = false;
         for (long r : results) {
             System.out.println("mul: result = " + r);
             if (r > MAX || r < MIN) {
-                System.out.println("mul: overflow detected, returning top");
-                return top();
+                overflow = true;
+                break;
             }
             min = Math.min(min, r);
             max = Math.max(max, r);
         }
-        System.out.println("mul: min = " + min + ", max = " + max);
+        if (!overflow) {
+            System.out.println("mul: min = " + min + ", max = " + max);
+            return new IntervalsWithOverflowDomain((int) min, (int) max);
+        }
+        // Si débordement, appliquer wrap-around à tous les résultats
+        for (int i = 0; i < results.length; i++) {
+            results[i] = wrapAround32Bit(results[i]);
+        }
+        min = results[0];
+        max = results[0];
+        for (long r : results) {
+            min = Math.min(min, r);
+            max = Math.max(max, r);
+        }
+        System.out.println("mul: wrapped min = " + min + ", max = " + max);
         return new IntervalsWithOverflowDomain((int) min, (int) max);
     }
 
@@ -282,16 +300,37 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
                 (long) left.high / right.high
         };
         long min = results[0], max = results[0];
+        boolean overflow = false;
         for (long r : results) {
             System.out.println("div: result = " + r);
             if (r > MAX || r < MIN) {
-                System.out.println("div: overflow detected, returning top");
-                return top();
+                overflow = true;
+                break;
             }
             min = Math.min(min, r);
             max = Math.max(max, r);
         }
-        System.out.println("div: min = " + min + ", max = " + max);
+        if (!overflow) {
+            System.out.println("div: min = " + min + ", max = " + max);
+            return new IntervalsWithOverflowDomain((int) min, (int) max);
+        }
+        // Si débordement, appliquer wrap-around à tous les résultats
+        for (int i = 0; i < results.length; i++) {
+            results[i] = wrapAround32Bit(results[i]);
+        }
+        min = results[0];
+        max = results[0];
+        for (long r : results) {
+            min = Math.min(min, r);
+            max = Math.max(max, r);
+        }
+        System.out.println("div: wrapped min = " + min + ", max = " + max);
         return new IntervalsWithOverflowDomain((int) min, (int) max);
     }
+
+    private long wrapAround32Bit(long value) {
+        // Ramener dans la plage [-2147483648, 2147483647] via modulo 2³²
+        return ((value - MIN) % RANGE_32BIT + RANGE_32BIT) % RANGE_32BIT + MIN;
+    }
+
 }

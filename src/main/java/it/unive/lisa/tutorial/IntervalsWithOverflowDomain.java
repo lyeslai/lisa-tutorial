@@ -75,6 +75,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         if (this.isBottom() || other.isBottom()) {
             return bottom();
         }
+
         final int THRESHOLD = 1000;
         int newLow = this.low;
         int newHigh = this.high;
@@ -100,16 +101,14 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         return new IntervalsWithOverflowDomain(newLow, newHigh);
     }
 
+
     @Override
     public boolean lessOrEqualAux(IntervalsWithOverflowDomain other) throws SemanticException {
         if (this.isBottom() && other.isBottom()) {
-            return true;
+            return true; // ⊥ ≤ ⊥
         }
-        if (this.isBottom()) {
-            return true; // ⊥ ≤ tout
-        }
-        if (other.isBottom()) {
-            return false; // rien ≤ ⊥ sauf ⊥
+        if (this.isBottom() || other.isBottom()) {
+            return false; // Si un seul est ⊥, pas évaluable, donc pas ≤
         }
         return other.low <= this.low && this.high <= other.high;
     }
@@ -138,8 +137,10 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
     public IntervalsWithOverflowDomain evalNonNullConstant(Constant constant, ProgramPoint pp, SemanticOracle oracle) throws SemanticException {
         if (constant.getValue() instanceof Integer) {
             int value = (Integer) constant.getValue();
+            System.out.println("evalConstant: value = " + value);
             return new IntervalsWithOverflowDomain(value, value);
         }
+        System.out.println("evalConstant: non-integer, returning top");
         return top();
     }
 
@@ -161,18 +162,21 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
 
     @Override
     public IntervalsWithOverflowDomain evalBinaryExpression(BinaryOperator operator, IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right, ProgramPoint pp, SemanticOracle oracle) throws SemanticException {
+        System.out.println("evalBinary: left = " + left + ", right = " + right + ", operator = " + operator);
         if (left.isBottom() || right.isBottom()) {
+            System.out.println("evalBinary: returning bottom");
             return bottom();
         }
         if (operator instanceof AdditionOperator) {
-            return add(right);
+            return add(left, right);
         } else if (operator instanceof SubtractionOperator) {
-            return sub(right);
+            return sub(left, right);
         } else if (operator instanceof MultiplicationOperator) {
-            return mul(right);
+            return mul(left, right);
         } else if (operator instanceof DivisionOperator) {
-            return div(right); // Utilise la nouvelle méthode div()
+            return div(left, right);
         }
+        System.out.println("evalBinary: unknown operator, returning top");
         return top();
     }
 
@@ -207,72 +211,87 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         return new StringRepresentation("[" + low + ", " + high + "]");
     }
 
-    public IntervalsWithOverflowDomain add(IntervalsWithOverflowDomain other) {
-        if (this.isBottom() || other.isBottom()) {
+    public IntervalsWithOverflowDomain add(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
+        if (left.isBottom() || right.isBottom()) {
+            System.out.println("add: returning bottom");
             return bottom();
         }
-        long newLow = (long) this.low + (long) other.low;
-        long newHigh = (long) this.high + (long) other.high;
+        long newLow = (long) left.low + (long) right.low;
+        long newHigh = (long) left.high + (long) right.high;
+        System.out.println("add: newLow = " + newLow + ", newHigh = " + newHigh);
         if (newLow > MAX || newLow < MIN || newHigh > MAX || newHigh < MIN) {
+            System.out.println("add: overflow detected, returning top");
             return top();
         }
         return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
     }
 
-    public IntervalsWithOverflowDomain sub(IntervalsWithOverflowDomain other) {
-        if (this.isBottom() || other.isBottom()) {
+    public IntervalsWithOverflowDomain sub(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
+        if (left.isBottom() || right.isBottom()) {
+            System.out.println("sub: returning bottom");
             return bottom();
         }
-        long newLow = (long) this.low - (long) other.high;
-        long newHigh = (long) this.high - (long) other.low;
+        long newLow = (long) left.low - (long) right.high;
+        long newHigh = (long) left.high - (long) right.low;
+        System.out.println("sub: newLow = " + newLow + ", newHigh = " + newHigh);
         if (newLow > MAX || newLow < MIN || newHigh > MAX || newHigh < MIN) {
+            System.out.println("sub: overflow detected, returning top");
             return top();
         }
         return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
     }
 
-    public IntervalsWithOverflowDomain mul(IntervalsWithOverflowDomain other) {
-        if (this.isBottom() || other.isBottom()) {
+    public IntervalsWithOverflowDomain mul(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
+        if (left.isBottom() || right.isBottom()) {
+            System.out.println("mul: returning bottom");
             return bottom();
         }
         long[] results = new long[]{
-                (long) this.low * other.low,
-                (long) this.low * other.high,
-                (long) this.high * other.low,
-                (long) this.high * other.high
+                (long) left.low * right.low,
+                (long) left.low * right.high,
+                (long) left.high * right.low,
+                (long) left.high * right.high
         };
         long min = results[0], max = results[0];
         for (long r : results) {
+            System.out.println("mul: result = " + r);
             if (r > MAX || r < MIN) {
+                System.out.println("mul: overflow detected, returning top");
                 return top();
             }
             min = Math.min(min, r);
             max = Math.max(max, r);
         }
+        System.out.println("mul: min = " + min + ", max = " + max);
         return new IntervalsWithOverflowDomain((int) min, (int) max);
     }
 
-    public IntervalsWithOverflowDomain div(IntervalsWithOverflowDomain other) {
-        if (this.isBottom() || other.isBottom()) {
+    public IntervalsWithOverflowDomain div(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
+        if (left.isBottom() || right.isBottom()) {
+            System.out.println("div: returning bottom");
             return bottom();
         }
-        if (other.low <= 0 && other.high >= 0) { // Division par zéro possible
+        if (right.low <= 0 && right.high >= 0) {
+            System.out.println("div: division by zero, returning bottom");
             return bottom();
         }
         long[] results = new long[]{
-                (long) this.low / other.low,
-                (long) this.low / other.high,
-                (long) this.high / other.low,
-                (long) this.high / other.high
+                (long) left.low / right.low,
+                (long) left.low / right.high,
+                (long) left.high / right.low,
+                (long) left.high / right.high
         };
         long min = results[0], max = results[0];
         for (long r : results) {
+            System.out.println("div: result = " + r);
             if (r > MAX || r < MIN) {
+                System.out.println("div: overflow detected, returning top");
                 return top();
             }
             min = Math.min(min, r);
             max = Math.max(max, r);
         }
+        System.out.println("div: min = " + min + ", max = " + max);
         return new IntervalsWithOverflowDomain((int) min, (int) max);
     }
 }

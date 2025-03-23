@@ -8,6 +8,7 @@ import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.program.cfg.ProgramPoint;
 import it.unive.lisa.symbolic.value.Constant;
 import it.unive.lisa.symbolic.value.Identifier;
+import it.unive.lisa.symbolic.value.Variable;
 import it.unive.lisa.symbolic.value.ValueExpression;
 import it.unive.lisa.symbolic.value.operator.AdditionOperator;
 import it.unive.lisa.symbolic.value.operator.DivisionOperator;
@@ -25,6 +26,11 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
     private static final int MIN = Integer.MIN_VALUE;
     private static final int MAX = Integer.MAX_VALUE;
     private static final long RANGE_32BIT = 1L << 32;
+    // Seuils ajustés pour une meilleure précision
+    private static final int[] THRESHOLDS = {
+            Integer.MIN_VALUE, -1000000, -100000, -10000, -1000, -500, -100, -50, -20, -10, -5, -1,
+            0, 1, 5, 10, 20, 50, 100, 500, 1000, 5000, 10000, 100000, 1000000, Integer.MAX_VALUE
+    };
 
     private final int low;
     private final int high;
@@ -76,56 +82,25 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
             return bottom();
         }
 
-        long newLow = Math.min((long) this.low, (long) other.low);
-        long newHigh = Math.max((long) this.high, (long) other.high);
+        int newLow = this.low;
+        int newHigh = this.high;
 
-        if (other.low < this.low) {
-            long delta = (long) this.low - other.low;
-            newLow = wrapAround32Bit(newLow - delta); // Réduire avec wrap-around
-        }
+        if (other.low < this.low)
+            newLow = MIN;
+
         if (other.high > this.high) {
-            long delta = (long) other.high - this.high;
-            newHigh = wrapAround32Bit(newHigh + delta);
+            for (int threshold : THRESHOLDS) {
+                if (threshold > this.high) {
+                    newHigh = threshold;
+                    break;
+                }
+            }
         }
 
-        if (newLow > newHigh) {
-            return top();
-        }
-
-        return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
+        return new IntervalsWithOverflowDomain(newLow, newHigh);
     }
 
 
-    /*@Override
-public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other) throws SemanticException {
-    if (this.isBottom() || other.isBottom()) {
-        return bottom();
-    }
-
-    long newLow = Math.min((long) this.low, (long) other.low);
-    long newHigh = Math.max((long) this.high, (long) other.high);
-
-    // Élargir plus fortement pour converger
-    if (other.low < this.low) {
-        newLow = wrapAround32Bit(newLow - (this.low - other.low));
-    }
-    if (other.high > this.high) {
-        newHigh = wrapAround32Bit(newHigh + (other.high - this.high));
-    }
-
-    return new IntervalsWithOverflowDomain((int) newLow, (int) newHigh);
-}*/
-
-    /*@Override
-    public boolean lessOrEqualAux(IntervalsWithOverflowDomain other) throws SemanticException {
-        if (this.isBottom() && other.isBottom()) {
-            return true; // ⊥ ≤ ⊥
-        }
-        if (this.isBottom() || other.isBottom()) {
-            return false; // Si un seul est ⊥, pas évaluable, donc pas ≤
-        }
-        return other.low <= this.low && this.high <= other.high;
-    }*/
     @Override
     public boolean lessOrEqualAux(IntervalsWithOverflowDomain other) throws SemanticException {
         if (this.isBottom()) {
@@ -191,19 +166,22 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
             System.out.println("evalBinary: returning bottom");
             return bottom();
         }
+        IntervalsWithOverflowDomain result;
         if (operator instanceof AdditionOperator) {
-            return add(left, right);
+            result = add(left, right);
         } else if (operator instanceof SubtractionOperator) {
-            return sub(left, right);
+            result = sub(left, right);
         } else if (operator instanceof MultiplicationOperator) {
-            return mul(left, right);
+            result = mul(left, right);
         } else if (operator instanceof DivisionOperator) {
-            return div(left, right);
+            result = div(left, right);
+        } else {
+            System.out.println("evalBinary: unknown operator, returning top");
+            return top();
         }
-        System.out.println("evalBinary: unknown operator, returning top");
-        return top();
+        System.out.println("evalBinary result: " + result);
+        return result;
     }
-
 
     @Override
     public ValueEnvironment<IntervalsWithOverflowDomain> assumeBinaryExpression(
@@ -215,13 +193,17 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
             ProgramPoint dest,
             SemanticOracle oracle) throws SemanticException {
         if (environment.isBottom()) {
+            System.out.println("assumeBinary: environment is bottom, returning bottom");
             return environment;
         }
 
         IntervalsWithOverflowDomain leftValue = environment.eval(left, src, oracle);
         IntervalsWithOverflowDomain rightValue = environment.eval(right, src, oracle);
 
+        System.out.println("assumeBinary: leftValue = " + leftValue + ", rightValue = " + rightValue);
+
         if (leftValue.isBottom() || rightValue.isBottom()) {
+            System.out.println("assumeBinary: left or right is bottom, returning bottom");
             return environment.bottom();
         }
 
@@ -238,11 +220,14 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
             eval = leftValue;
             rightIsExpr = false;
         } else {
+            System.out.println("assumeBinary: neither left nor right is an identifier, returning unchanged environment");
             return environment;
         }
 
         IntervalsWithOverflowDomain starting = environment.getState(id);
         if (starting == null) starting = top();
+
+        System.out.println("assumeBinary: starting value for " + id + " = " + starting);
 
         IntervalsWithOverflowDomain update = null;
 
@@ -282,49 +267,42 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
                 long newHigh = starting.high;
                 update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
             }
-        // } else if (operator instanceof ComparisonLt) {
-        //     if (rightIsExpr) { // x < n
-        //         long newLow = starting.low;
-        //         long newHigh = Math.min((long) starting.high, (long) eval.low - 1);
-        //         update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
-        //         System.out.println("====assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
-        //     } else { // n < x (x > n)
-        //         long newLow = Math.max((long) starting.low, (long) eval.high + 1);
-        //         long newHigh = starting.high;
-        //         update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
-        //         System.out.println("====assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
-        //     }
-    } else if (operator instanceof ComparisonLt) { // x < n
-        if (rightIsExpr) {
-            long newLow = starting.low;
-            long newHigh = eval.low - 1; // Toujours eval.low - 1, pas min avec starting.high
-            update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
-            System.out.println("assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
-        } else { // n < x (x > n)
-            long newLow = eval.high + 1;
-            long newHigh = starting.high;
-            update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
-            System.out.println("assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
-        }
-
+        } else if (operator instanceof ComparisonLt) { // x < n
+            if (rightIsExpr) { // x < expr
+                long newLow = starting.low;
+                long newHigh = eval.low - 1;
+                update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
+                System.out.println("assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
+            } else { // x < n (n is constant, like 10)
+                long newLow = starting.low;
+                long newHigh = Math.min((long) starting.high, (long) eval.low - 1);
+                update = new IntervalsWithOverflowDomain((int) wrapAround32Bit(newLow), (int) wrapAround32Bit(newHigh));
+                System.out.println("assumeLt: starting = " + starting + ", eval = " + eval + ", update = " + update);
+            }
         } else if (operator instanceof ComparisonNe) {
             update = starting;
         } else {
+            System.out.println("assumeBinary: unknown operator, returning unchanged environment");
             return environment;
         }
 
         if (update == null || update.isBottom() || update.low > update.high) {
-            return environment.bottom();
+            System.out.println("assumeBinary: update is invalid (null, bottom, or low > high), returning unchanged environment");
+            return environment; // Ne pas retourner bottom immédiatement
         }
 
-        IntervalsWithOverflowDomain widened = starting.wideningAux(update);
-        if (widened.isBottom()) {
-            return environment.bottom();
+        // Éviter un élargissement systématique pour préserver la précision
+        IntervalsWithOverflowDomain newState = update;
+
+        if (newState.isBottom()) {
+            System.out.println("assumeBinary: newState is bottom, returning unchanged environment");
+            return environment; // Ne pas retourner bottom immédiatement
         }
 
-        return environment.putState(id, widened);
+        ValueEnvironment<IntervalsWithOverflowDomain> newEnv = environment.putState(id, newState);
+
+        return newEnv;
     }
-
 
     @Override
     public StructuredRepresentation representation() {
@@ -332,7 +310,6 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
         if (isTop()) return new StringRepresentation("T");
         return new StringRepresentation("[" + low + ", " + high + "]");
     }
-
 
     public IntervalsWithOverflowDomain add(IntervalsWithOverflowDomain left, IntervalsWithOverflowDomain right) {
         if (left.isBottom() || right.isBottom()) {
@@ -391,7 +368,6 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
             System.out.println("mul: min = " + min + ", max = " + max);
             return new IntervalsWithOverflowDomain((int) min, (int) max);
         }
-        // Si débordement, appliquer wrap-around à tous les résultats
         for (int i = 0; i < results.length; i++) {
             results[i] = wrapAround32Bit(results[i]);
         }
@@ -435,7 +411,6 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
             System.out.println("div: min = " + min + ", max = " + max);
             return new IntervalsWithOverflowDomain((int) min, (int) max);
         }
-        // Si débordement, appliquer wrap-around à tous les résultats
         for (int i = 0; i < results.length; i++) {
             results[i] = wrapAround32Bit(results[i]);
         }
@@ -450,8 +425,6 @@ public IntervalsWithOverflowDomain wideningAux(IntervalsWithOverflowDomain other
     }
 
     private long wrapAround32Bit(long value) {
-        // Ramener dans la plage [-2147483648, 2147483647] via modulo 2³²
         return ((value - MIN) % RANGE_32BIT + RANGE_32BIT) % RANGE_32BIT + MIN;
     }
-
 }

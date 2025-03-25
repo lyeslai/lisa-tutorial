@@ -1,0 +1,42 @@
+class EqualsDomain {
+
+	basic(y) {
+	    def z = 0;
+	    if(z==y)
+	        z = y + 1;
+	}
+
+    basic2(x) {
+	    def y = x + 1;
+	    def k = y + 1;
+	    def z = y;
+	    x = 0;
+	    def v = z+1;
+	}
+
+    basic3() {
+        def x = 1; 
+        def y = 1;
+        def z = x;
+		def a = 0;
+		def b = 2;
+		def c = b+2;
+		def d = a+2;
+		def e = d-2;
+		def f = b*2;
+		def g = 4-2;
+		
+		/*final result : OK
+		a: [a, e]
+		b: [b, d, g]
+		c: [c, f]
+		d: [b, d, g]
+		e: [a, e]
+		f: [c, f]
+		g: [b, d, g]
+		x: [x, y, z]
+		y: [x, y, z]
+		z: [x, y, z]*/
+    }
+
+}

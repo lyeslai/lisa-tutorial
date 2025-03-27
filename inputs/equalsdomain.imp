@@ -39,4 +39,32 @@ class EqualsDomain {
 		z: [x, y, z]*/
     }
 
+	basic4(x) {
+        def y = x;
+        def z = y;
+        x = y;
+        def w = 5;
+        y = w;
+	}
+
+	basicIf() {
+		def x = 1;
+		def y = 1;
+		def z = 2;
+		if (x == y) {
+			def w = x;
+			def v = 1;
+		} else {
+			def w = z;
+			def v = 2;
+		}
+		/*final result : OK
+		v: [v, w, x, y]
+		w: [v, w, x, y]
+		x: [v, w, x, y]
+		y: [v, w, x, y]
+		z: [z]*/	
+	}
+
+
 }

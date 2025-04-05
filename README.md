@@ -1,3 +1,27 @@
+# Intervals With Overflow
+## Description
+Ce domaine abstrait IntervalsWithOverflowDomain représente les intervalles d’entiers avec gestion explicite du dépassement de capacité (overflow 32 bits). Il permet une analyse plus réaliste dans des environnements où les variables entières peuvent dépasser la borne maximale ou minimale d’un int.
+
+## Fonctionnalités clés
+- **Wrap-around** sur 32 bits signé (**Integer.MIN_VALUE** à **Integer.MAX_VALUE**) pour toutes les opérations binaires (+, -, *, /).
+
+- Évaluation précise des bornes dans les comparaisons (<, <=, >, >=, ==, !=) dans **assumeBinaryExpression**.
+
+- **Widening** avec seuils progressifs (**thresholds**) pour éviter les boucles infinies tout en maintenant la précision.
+
+- Gestion robuste des divisions par zéro (⊥).
+
+- Compatible avec ValueEnvironment.
+
+## Objectif
+- Détecter des erreurs numériques potentielles (overflow).
+
+- Offrir un compromis entre précision et convergence rapide pour les boucles et les affectations répétées.
+
+## Limites
+- En cas de wrap-around extrême (proche de ±2³¹), la précision peut se dégrader.
+
+
 # Domaine d'Égalité (EqualsDomain)
 
 Ce projet implémente un domaine d'égalité (**EqualsDomain**) pour l'analyse statique de programmes en utilisant le framework **LiSA** (*Library for Static Analysis*). Le domaine d'égalité est conçu pour suivre les relations d'égalité entre les variables et leurs valeurs concrètes dans un programme.

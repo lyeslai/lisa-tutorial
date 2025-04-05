@@ -1,0 +1,116 @@
+class BasicOverflowAndEqualityTest {
+
+    // Test 1 
+    simpleAssign() {
+        def x = 5;
+        def y = x;
+        def z = y;
+        /* Final result :
+           - Intervalles : x = [5, 5], y = [5, 5], z = [5, 5]
+           - Égalités : {x, y, z}
+           - Valeurs concrètes : x = y = z = 5
+        */
+    }
+
+    // Test 2 
+    basicArithmetic() {
+        def a = 3;
+        def b = a + 1;
+        def c = b;
+        def d = a + 2;
+        /* Final result :
+           - Intervalles : a = [3, 3], b = [4, 4], c = [4, 4], d = [5, 5]
+           - Égalités : {a}, {b, c}, {d}
+           - Valeurs concrètes : a = 3, b = c = 4, d = 5
+        */
+    }
+
+    // Test 3 
+    reassign() {
+        def x = 1;     
+        def y = x;    
+        x = 2;          
+        def z = y;    
+        /* Final result :
+           - Intervalles : x = [2, 2], y = [1, 1], z = [1, 1]
+           - Égalités : {x}, {y, z}
+           - Valeurs concrètes : x = 2, y = z = 1
+        */
+    }
+
+    // Test 4 
+    differentValues() {
+        def a = 10;     
+        def b = a + 5;  
+        def c = a;     
+        def d = b - 5;  
+        /* Final result : 
+           - Intervalles : a = [10, 10], b = [15, 15], c = [10, 10], d = [10, 10]
+           - Égalités : {a, c, d}, {b}
+           - Valeurs concrètes : a = c = d = 10, b = 15
+        */
+    }
+
+    // Test 1 Boucle
+    simpleLoop() {
+        def x = 0;        
+        while (x < 5) {   
+            x = x + 1;
+        }
+        /* Final result : avec widening
+           - Intervalles : x = [0, 5] 
+           - Égalités : {x}
+           - Valeur concrète : x = 5
+        */
+    }
+
+    // Test 2 Boucle :
+    loopWithEquality() {
+        def x = 0; 
+        def y = x; 
+        while (x < 3) {   
+            x = x + 2; 
+            y = y + 2; 
+        }
+        def z = y; 
+        /* Final result : avec widening
+           - Intervalles : x = [0, 4], y = z = [0, Integer.MAX_VALUE] 
+           - Égalités : {x}, {y, z}
+           - Valeur concrète : x = 4, y = z = Integer.MAX_VALUE
+        */
+    }
+
+    // Test 3 Boucle
+    differentIntervals() {
+        def a = 0; 
+        def b = 10; 
+        while (a < 4) { 
+            a = a + 1;  
+            b = b + 2; 
+        }
+        def c = a;        
+        /* Final result : avec widening
+           - Intervalles : a = c = [0, 4], b = [10, Integer.MAX_VALUE]
+           - Égalités : {a, c}, {b}
+           - Valeurs concrètes : a = c = 4, b = Integer.MAX_VALUE
+        */
+    }
+
+    // Test 4 Boucle
+    loopWithReassign() {
+        def x = 0;  
+        def y = x; 
+        while (x < 5) {
+            x = x + 1; 
+        }
+        y = 0;            
+        def z = x;        
+        /* Final result : avec widening
+           - Intervalles : x = z = [0, 5], y = [0, 0]
+           - Égalités : {x, z}, {y}
+           - Valeurs concrètes : x = z = 5, y = 0
+        */
+    }
+
+
+}

@@ -167,7 +167,7 @@ La méthode `forgetIdentifier` permet de supprimer toutes les informations assoc
 Actuellement, le domaine d'égalité ne prend pas en charge l'analyse des boucles. Toute tentative d'analyser une boucle ne mettra pas à jour correctement les relations d'égalité entre les variables, ce qui limite son applicabilité aux programmes contenant des structures répétitives.
 
 
-## 🧩 Produit Cartésien : OverflowEqualityCartesianProduct
+## Produit Cartésien : OverflowEqualityCartesianProduct
 
 Le domaine `OverflowEqualityCartesianProduct` combine deux domaines :
 - `EqualsDomain`

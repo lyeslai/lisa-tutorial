@@ -1,6 +1,5 @@
 package it.unive.lisa.tutorial;
 
-import it.unive.lisa.analysis.SemanticDomain;
 import it.unive.lisa.analysis.combination.CartesianProduct;
 import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.analysis.value.ValueDomain;

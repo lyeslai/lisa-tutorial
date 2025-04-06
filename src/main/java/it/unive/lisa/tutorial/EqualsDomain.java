@@ -69,7 +69,7 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
             Object constantValue = ((Constant) valueExpression).getValue();
             Set<Identifier> value = new HashSet<>(Collections.singleton(identifier));
             result = result.putState(identifier, new SetOfElements(value, false, constantValue));
-        } else if (valueExpression instanceof BinaryExpression binary) { // cas k = y + 1, k = y - 1, etc.
+        } else if (valueExpression instanceof BinaryExpression binary) { // cas k = y + 1, k = y - 1, ...
             ValueExpression left = (ValueExpression) binary.getLeft();
             ValueExpression right = (ValueExpression) binary.getRight();
             Set<Identifier> value = new HashSet<>(Collections.singleton(identifier));
@@ -153,10 +153,10 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
                     }
                     yield null;
                 }
-                default -> null; // Opérateur non géré
+                default -> null; 
             };
         }
-        return null; // Opérateur inconnu
+        return null; 
     }
 
     @Override
@@ -192,7 +192,7 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
                 }
             }
         }
-        return result.close(); // Fusion globale avec close()
+        return result.close();
     }
 
     private EqualsDomain close() {
@@ -200,12 +200,10 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
         Map<Object, Set<Identifier>> valueGroups = new HashMap<>();
         Map<Identifier, Set<Identifier>> eqGroups = new HashMap<>();
 
-        // Étape 1 : Construire les groupes d'égalité explicites
         for (Identifier id : this.getKeys()) {
             eqGroups.put(id, new HashSet<>(result.getState(id).elements));
         }
 
-        // Étape 2 : Regrouper par valeurs concrètes
         for (Identifier id : this.getKeys()) {
             Object concrete = result.getState(id).getConcreteValue();
             if (concrete != null) {
@@ -213,17 +211,14 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
             }
         }
 
-        // Étape 3 : Fusionner les groupes d'égalité et valeurs concrètes
         for (Identifier id1 : this.getKeys()) {
             Set<Identifier> eqSet = eqGroups.get(id1);
             Object concrete = result.getState(id1).getConcreteValue();
 
-            // Ajouter les identifiants liés par la même valeur concrète
             if (concrete != null && valueGroups.containsKey(concrete)) {
                 eqSet.addAll(valueGroups.get(concrete));
             }
 
-            // Mettre à jour tous les identifiants du groupe
             for (Identifier id : eqSet) {
                 eqGroups.put(id, eqSet);
                 result = result.putState(id, new SetOfElements(eqSet, false, concrete));
@@ -234,56 +229,18 @@ public class EqualsDomain extends FunctionalLattice<EqualsDomain, Identifier, Eq
     }
 
 
-    /*
-    private EqualsDomain close() {
-        EqualsDomain result = this;
-        Map<Object, Set<Identifier>> valueGroups = new HashMap<>();
-    
-        //Regrouper par valeurs concrètes uniquement
-        for (Identifier id : this.getKeys()) {
-            Object concrete = result.getState(id).getConcreteValue();
-            if (concrete != null) {
-                valueGroups.computeIfAbsent(concrete, k -> new HashSet<>()).add(id);
-            }
-        }
-    
-        //Fusionner uniquement sur égalités explicites ou valeurs concrètes
-        for (Identifier id1 : this.getKeys()) {
-            Set<Identifier> eqSet = new HashSet<>(result.getState(id1).elements);
-            Object concrete = result.getState(id1).getConcreteValue();
-    
-            if (concrete != null && valueGroups.containsKey(concrete)) {
-                eqSet.addAll(valueGroups.get(concrete));
-            }
-    
-            for (Identifier id : eqSet) {
-                result = result.putState(id, new SetOfElements(eqSet, false, concrete));
-            }
-        }
-        return result;
-    }*/
-
     @Override
     public boolean knowsIdentifier(Identifier identifier) {
         return this.getKeys().contains(identifier);
     }
 
-    /*@Override
-    public EqualsDomain forgetIdentifier(Identifier identifier) throws SemanticException {
-        EqualsDomain result = this;
-        if (result.getKeys().contains(identifier)) {
-            result = result.putState(identifier, new SetOfElements(Collections.singleton(identifier), true, null));
-        }
-        return result;
-    }*/
-
     @Override
     public EqualsDomain forgetIdentifier(Identifier identifier) throws SemanticException {
         EqualsDomain result = this;
         if (result.getKeys().contains(identifier)) {
-            // Réinitialise l'état de l'identifiant
+
             result = result.putState(identifier, new SetOfElements(Collections.singleton(identifier), true, null));
-            // Retire l'identifiant des autres ensembles
+
             for (Identifier id : result.getKeys()) {
                 if (!id.equals(identifier)) {
                     Set<Identifier> currentSet = new HashSet<>(result.getState(id).elements);

@@ -3,7 +3,6 @@ package it.unive.lisa.tutorial;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
-import it.unive.lisa.analysis.lattices.Satisfiability;
 import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.program.cfg.ProgramPoint;
 import it.unive.lisa.symbolic.value.Constant;
@@ -178,18 +177,18 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
         IntervalsWithOverflowDomain update = null;
 
         if (operator instanceof ComparisonLt) {
-            // Amélioration de la gestion des comparaisons inférieures
+
             if (rightIsExpr) {
-                // Limiter précisément la borne supérieure
+
                 int newHigh = Math.min(starting.high, eval.low - 1);
                 update = new IntervalsWithOverflowDomain(starting.low, newHigh);
             } else {
-                // Limiter précisément la borne inférieure
+
                 int newLow = Math.max(starting.low, eval.low);
                 update = new IntervalsWithOverflowDomain(newLow, starting.high);
             }
         } else if (operator instanceof ComparisonLe) {
-            // Amélioration de la gestion des comparaisons inférieures ou égales
+
             if (rightIsExpr) {
                 int newHigh = Math.min(starting.high, eval.low);
                 update = new IntervalsWithOverflowDomain(starting.low, newHigh);
@@ -198,7 +197,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
                 update = new IntervalsWithOverflowDomain(newLow, starting.high);
             }
         } else if (operator instanceof ComparisonGt) {
-            // Amélioration de la gestion des comparaisons supérieures
+
             if (rightIsExpr) {
                 int newLow = Math.max(starting.low, eval.high + 1);
                 update = new IntervalsWithOverflowDomain(newLow, starting.high);
@@ -207,7 +206,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
                 update = new IntervalsWithOverflowDomain(starting.low, newHigh);
             }
         } else if (operator instanceof ComparisonGe) {
-            // Amélioration de la gestion des comparaisons supérieures ou égales
+
             if (rightIsExpr) {
                 int newLow = Math.max(starting.low, eval.high);
                 update = new IntervalsWithOverflowDomain(newLow, starting.high);
@@ -216,14 +215,14 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
                 update = new IntervalsWithOverflowDomain(starting.low, newHigh);
             }
         } else if (operator instanceof ComparisonEq) {
-            // Gestion de l'égalité plus stricte
+
             if (starting.low <= eval.low && starting.high >= eval.high) {
                 update = new IntervalsWithOverflowDomain(eval.low, eval.high);
             } else {
                 update = bottom();
             }
         } else if (operator instanceof ComparisonNe) {
-            // Conserver l'état initial si ce n'est pas une égalité
+
             update = starting;
         } else {
             return environment;
@@ -233,13 +232,11 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
             return environment;
         }
 
-        // Raffinement plus conservateur
         IntervalsWithOverflowDomain refined = new IntervalsWithOverflowDomain(
                 Math.max(starting.low, update.low),
                 Math.min(starting.high, update.high)
         );
 
-        // Éviter l'élargissement prématuré
         if (refined.low > refined.high) {
             return environment;
         }
@@ -277,7 +274,7 @@ public class IntervalsWithOverflowDomain implements BaseNonRelationalValueDomain
 
     private IntervalsWithOverflowDomain div(IntervalsWithOverflowDomain l, IntervalsWithOverflowDomain r) {
         if (r.low <= 0 && r.high >= 0)
-            return bottom(); // division by zero
+            return bottom();
         long[] results = new long[] {
                 (long) l.low / r.low, (long) l.low / r.high,
                 (long) l.high / r.low, (long) l.high / r.high

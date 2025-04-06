@@ -166,3 +166,25 @@ La méthode `forgetIdentifier` permet de supprimer toutes les informations assoc
 
 Actuellement, le domaine d'égalité ne prend pas en charge l'analyse des boucles. Toute tentative d'analyser une boucle ne mettra pas à jour correctement les relations d'égalité entre les variables, ce qui limite son applicabilité aux programmes contenant des structures répétitives.
 
+
+## 🧩 Produit Cartésien : OverflowEqualityCartesianProduct
+
+Le domaine `OverflowEqualityCartesianProduct` combine deux domaines :
+- `EqualsDomain`
+- `ValueEnvironment<IntervalsWithOverflowDomain>`
+
+### But :
+- Bénéficier à la fois de la **précision des égalités** (ex: `x == y`) et de la **précision numérique** avec gestion de l’overflow.
+
+### Utilisation :
+Ce domaine est instancié dans la configuration LiSA comme état abstrait combiné.
+
+```java
+new OverflowEqualityCartesianProduct(new EqualsDomain(), new ValueEnvironment<>(new IntervalsWithOverflowDomain()))
+```
+
+Ce produit permet une meilleure précision dans l’analyse statique sans perdre la convergence.
+
+---
+
+

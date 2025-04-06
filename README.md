@@ -1,25 +1,122 @@
-# Intervals With Overflow
-## Description
-Ce domaine abstrait IntervalsWithOverflowDomain représente les intervalles d’entiers avec gestion explicite du dépassement de capacité (overflow 32 bits). Il permet une analyse plus réaliste dans des environnements où les variables entières peuvent dépasser la borne maximale ou minimale d’un int.
+# IntervalsWithOverflowDomain
 
-## Fonctionnalités clés
-- **Wrap-around** sur 32 bits signé (**Integer.MIN_VALUE** à **Integer.MAX_VALUE**) pour toutes les opérations binaires (+, -, *, /).
+Ce domaine abstrait `IntervalsWithOverflowDomain` représente des intervalles d’entiers avec **gestion explicite du dépassement de capacité** (overflow 32 bits signé). Il améliore la précision de l’analyse numérique tout en assurant une convergence plus contrôlée dans les boucles.
 
-- Évaluation précise des bornes dans les comparaisons (<, <=, >, >=, ==, !=) dans **assumeBinaryExpression**.
+## Structure
 
-- **Widening** avec seuils progressifs (**thresholds**) pour éviter les boucles infinies tout en maintenant la précision.
+Cette classe étend `BaseNonRelationalValueDomain<IntervalsWithOverflowDomain>` et représente un intervalle `[low, high]` avec un wrap-around automatique sur les entiers 32 bits.
 
-- Gestion robuste des divisions par zéro (⊥).
+```java
+private final int low;
+private final int high;
+```
 
-- Compatible avec ValueEnvironment.
+---
 
-## Objectif
-- Détecter des erreurs numériques potentielles (overflow).
+## Fonctionnalités Implémentées
 
-- Offrir un compromis entre précision et convergence rapide pour les boucles et les affectations répétées.
+### 1. Wrap-around 32 bits
+
+Toutes les opérations binaires arithmétiques prennent en charge le débordement 32 bits à l’aide de :
+
+```java
+private long wrapAround32Bit(long value) {
+    return ((value - MIN) % RANGE_32BIT + RANGE_32BIT) % RANGE_32BIT + MIN;
+}
+```
+
+Cela permet d'émuler fidèlement le comportement des entiers en Java.
+
+---
+
+### 2. `evalBinaryExpression`
+
+Cette méthode centralise l’évaluation de toutes les opérations binaires :
+
+- **Addition (`+`)** : `add(IntervalsWithOverflowDomain left, right)`
+- **Soustraction (`-`)** : `sub(...)`
+- **Multiplication (`*`)** : `mul(...)` avec gestion explicite des combinaisons
+- **Division (`/`)** : `div(...)` avec détection de la division par zéro
+
+Chaque opération applique la logique de wrap-around si un débordement est détecté.
+
+---
+
+### 3. `assumeBinaryExpression`
+
+Permet d’affiner les intervalles selon des hypothèses conditionnelles :
+
+| Opérateur     | Action sur l’intervalle (automatique)       |
+|---------------|---------------------------------------------|
+| `x < y`       | `high = min(high, y.low - 1)`               |
+| `x <= y`      | `high = min(high, y.high)`                 |
+| `x > y`       | `low  = max(low, y.high + 1)`              |
+| `x >= y`      | `low  = max(low, y.low)`                   |
+| `x == y`      | si inclus dans l’autre, alors égalisation  |
+| `x != y`      | pas d’affinement                           |
+
+Cette méthode utilise la **forme canonique de la comparaison** pour ajuster les bornes automatiquement, sans intervention manuelle.
+
+---
+
+### 4. Widening progressif
+
+La méthode `wideningAux` applique un **élargissement contrôlé** à l’aide d’un tableau de seuils :
+
+```java
+private static final int[] THRESHOLDS = {
+    Integer.MIN_VALUE, -10000, -1000, -100, -10, 0,
+    10, 100, 1000, 10000, Integer.MAX_VALUE
+};
+```
+
+À chaque itération, si un élargissement est requis, on monte seulement jusqu'au prochain seuil supérieur — évitant ainsi un passage brutal à `top`.
+
+---
+
+### 5. Robustesse
+
+- **bottom()** : retourné si l’intervalle est incohérent (`low > high`)
+- **top()** : `[MIN_VALUE, MAX_VALUE]` pour un intervalle inconnu
+- **Division par zéro** : produit ⊥ (`bottom`)
+- **Widening/Égalité** : s’assurent que l’intervalle reste cohérent sans sur-approximation immédiate
+
+---
 
 ## Limites
-- En cas de wrap-around extrême (proche de ±2³¹), la précision peut se dégrader.
+
+- La précision peut être perdue en cas de **wrap-around multiple** (e.g., `Integer.MAX_VALUE + 100000`).
+- Actuellement, seule une borne est raffinée à la fois (`x` ou `res`), mais pas les deux simultanément dans un contexte `loop`.
+
+---
+
+## Objectif
+
+- Offrir une alternative réaliste aux intervalles classiques avec **wrap-around natif**
+- Éviter les non-convergences par **widening à seuils**
+- Être facilement combinable via `ValueEnvironment` et le produit cartésien
+
+---
+
+## Exemple
+
+```imp
+int x, res;
+x = 0;
+res = 0;
+while (x < 10) {
+    res = res + 100;
+    x = x + 1;
+}
+```
+
+Ce programme doit inférer :
+
+- `x ∈ [0, 10]`
+- `res ∈ [0, 1000]`
+
+grâce à l’élargissement progressif et l’affinement dans `assumeBinaryExpression`.
+
 
 
 # Domaine d'Égalité (EqualsDomain)
